@@ -15,9 +15,7 @@ RUN apt-get update && \
 COPY unbound.conf /etc/unbound/unbound.conf
 COPY start.sh /usr/local/bin/start.sh
 
-RUN chmod +x /usr/local/bin/start.sh \
-    mkdir -p /var/lib/unbound && \
-    unbound-anchor -a /var/lib/unbound/root.key
+RUN chmod +x /usr/local/bin/start.sh
 
 EXPOSE 853
 EXPOSE 443
