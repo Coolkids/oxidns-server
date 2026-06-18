@@ -3,7 +3,9 @@
 set -e
 
 echo "Starting Unbound..."
-
+if [ ! -f /var/lib/unbound/root.key ]; then
+    unbound-anchor -a /var/lib/unbound/root.key
+fi
 unbound -c /etc/unbound/unbound.conf
 
 echo "Starting OxiDNS..."
