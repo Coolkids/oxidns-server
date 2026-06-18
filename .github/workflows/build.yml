@@ -56,6 +56,11 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v6
+            
+            - name: Update Zone Cache
+              run: |
+                curl -o ./files/root.hints https://www.internic.net/domain/named.cache
+                curl -o ./files/root.zone https://www.internic.net/domain/root.zone
 
             - name: Login DockerHub
               uses: docker/login-action@v4
