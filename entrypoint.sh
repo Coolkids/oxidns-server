@@ -4,7 +4,7 @@ set -e
 
 echo "Starting Unbound..."
 if [ ! -f /var/lib/unbound/root.key ]; then
-    unbound-anchor -a /var/lib/unbound/root.key
+    unbound-anchor -a /var/lib/unbound/root.key || echo "Please check root.key"
 fi
 if [ ! -f /var/lib/unbound/root.hints ]; then
     curl -o /var/lib/unbound/root.hints https://www.internic.net/domain/named.cache

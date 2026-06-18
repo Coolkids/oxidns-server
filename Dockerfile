@@ -11,16 +11,15 @@ RUN apt-get update && \
     procps \
     net-tools \
     ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN mkdir -p /var/lib/unbound
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /var/lib/unbound && \
+    unbound-anchor -a /var/lib/unbound/root.key || echo "Please check root.key"
 
 COPY unbound.conf /etc/unbound/unbound.conf
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY files/root.hints /var/lib/unbound/root.hints
 COPY files/root.zone /var/lib/unbound/root.zone
 
-RUN chown -R unbound:unbound /var/lib/unbound/
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 853
