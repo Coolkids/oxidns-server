@@ -2,17 +2,13 @@
 
 set -e
 
-unbound -d -c /etc/unbound/unbound.conf &
-UNBOUND_PID=$!
+echo "Starting Unbound..."
 
-sleep 2
+unbound -c /etc/unbound/unbound.conf
 
-oxidns start \
-  -c /etc/oxidns/config.yaml \
-  -d /etc/oxidns &
+echo "Starting OxiDNS..."
 
-OXIDNS_PID=$!
+exec oxidns start \
+    -c /etc/oxidns/config.yaml \
+    -d /etc/oxidns
 
-wait -n
-
-kill $UNBOUND_PID $OXIDNS_PID 2>/dev/null || true
