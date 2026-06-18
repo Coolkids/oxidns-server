@@ -1,4 +1,6 @@
-FROM svenshi/oxidns
+FROM svenshi/oxidns:latest AS oxidns
+
+FROM debian:trixie-slim
 
 LABEL maintainer="Coolkid"
 
@@ -12,15 +14,21 @@ RUN apt-get update && \
     net-tools \
     ca-certificates && \
     rm -rf /var/lib/apt/lists/* && \
+    mkdir -p etc/oxidns && \
     mkdir -p /var/lib/unbound && \
     unbound-anchor -a /var/lib/unbound/root.key || echo "Please check root.key"
+
+COPY --from=oxidns /usr/local/bin/oxidns /usr/local/bin/oxidns
+COPY --from=oxidns /etc/oxidns/config.yaml /etc/oxidns/config.yaml
+COPY --from=oxidns /etc/oxidns/webui /etc/oxidns/webui
 
 COPY unbound.conf /etc/unbound/unbound.conf
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY files/root.hints /var/lib/unbound/root.hints
 COPY files/root.zone /var/lib/unbound/root.zone
 
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh && \
+    chmod +x /usr/local/bin/oxidns
 
 EXPOSE 853
 EXPOSE 443
