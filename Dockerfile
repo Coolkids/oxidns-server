@@ -15,4 +15,7 @@ RUN chmod +x /usr/local/bin/start.sh && \
     mkdir -p /var/lib/unbound && \
     unbound-anchor -a /var/lib/unbound/root.key
 
+EXPOSE 853
+EXPOSE 443
+EXPOSE 9199/tcp
 ENTRYPOINT ["/usr/local/bin/start.sh"]
