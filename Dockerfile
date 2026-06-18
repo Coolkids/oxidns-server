@@ -24,9 +24,8 @@ COPY --from=oxidns /etc/oxidns/webui /etc/oxidns/webui
 
 COPY unbound.conf /etc/unbound/unbound.conf
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY files/root.hints /var/lib/unbound/root.hints
 COPY files/root-cn.hints /var/lib/unbound/root-cn.hints
-COPY files/root.zone /var/lib/unbound/root.zone
+
 
 RUN chmod +x /usr/local/bin/entrypoint.sh && \
     chmod +x /usr/local/bin/oxidns
