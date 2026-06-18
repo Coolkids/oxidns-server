@@ -1,0 +1,2 @@
+这是自用的oxidns服务器，用于提供DNS解析服务
+功能：添加unbound作为上游解析，unbound使用RFC8806做本地根服务器。
