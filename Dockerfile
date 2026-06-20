@@ -12,6 +12,7 @@ RUN apt-get update && \
     dns-root-data \
     procps \
     net-tools \
+    dig nslookup \
     ca-certificates && \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p etc/oxidns && \
