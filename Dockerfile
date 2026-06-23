@@ -1,18 +1,18 @@
 FROM svenshi/oxidns:latest AS oxidns
 
-FROM debian:trixie-slim
+FROM debian:13-slim
 
 LABEL maintainer="Coolkid"
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apt update && \
+    apt install -y --no-install-recommends \
     curl wget \
     unbound \
     unbound-anchor \
     dns-root-data \
     procps \
     net-tools \
-    dig nslookup \
+    bind9-dnsutils vim \
     ca-certificates && \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p etc/oxidns && \
