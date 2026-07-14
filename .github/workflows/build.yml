@@ -22,22 +22,36 @@ jobs:
 
         steps:
             - uses: actions/checkout@v6
-            - name: Get latest OxiDNS version
+            - name: Get latest version
               id: latest
+              env:
+                GH_TOKEN: ${{ github.token }}
               run: |
-                VERSION=$(curl -s https://api.github.com/repos/SvenShi/oxidns/releases/latest | jq -r .tag_name)
+                VERSION=$(gh release view \
+                  --repo SvenShi/oxidns \
+                  --json tagName \
+                  -q .tagName)
+
+                [ -n "$VERSION" ] || exit 1
+
                 echo "version=$VERSION" >> $GITHUB_OUTPUT
 
             - name: Compare version
               id: check
               run: |
                 CURRENT=$(cat VERSION)
+                LATEST="${{ steps.latest.outputs.version }}"
 
-                if [ "$CURRENT" != "${{ steps.latest.outputs.version }}" ]; then
-                    echo "changed=true" >> $GITHUB_OUTPUT
-                    echo "version=${{ steps.latest.outputs.version }}" >> $GITHUB_OUTPUT
+                if [ -z "$LATEST" ] || [ "$LATEST" = "null" ]; then
+                  echo "::error::Invalid latest version"
+                  exit 1
+                fi
+
+                if [ "$CURRENT" != "$LATEST" ]; then
+                  echo "changed=true" >> $GITHUB_OUTPUT
+                  echo "version=$LATEST" >> $GITHUB_OUTPUT
                 else
-                    echo "changed=false" >> $GITHUB_OUTPUT
+                  echo "changed=false" >> $GITHUB_OUTPUT
                 fi
 
             - name: Update VERSION file
