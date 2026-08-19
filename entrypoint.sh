@@ -2,16 +2,23 @@
 
 set -e
 
-echo "Starting Unbound..."
+echo "Initializing Unbound..."
+
 if [ ! -f /var/lib/unbound/root.key ]; then
-    unbound-anchor -a /var/lib/unbound/root.key || echo "Please check root.key"
+    echo "Generating root.key..."
+    unbound-anchor -a /var/lib/unbound/root.key || \
+        echo "Warning: failed to generate root.key"
 fi
-chown -R unbound:unbound /var/lib/unbound/
-unbound -c /etc/unbound/unbound.conf
 
-echo "Starting OxiDNS..."
+chown -R unbound:unbound /var/lib/unbound
 
-exec oxidns start \
-    -c /etc/oxidns/config.yaml \
-    -d /etc/oxidns
+echo "Checking Unbound configuration..."
+unbound-checkconf /etc/unbound/unbound.conf
 
+echo "Checking OxiDNS configuration..."
+oxidns check -c /etc/oxidns/config.yaml
+
+echo "Starting Supervisor..."
+
+exec /usr/bin/supervisord \
+    -c /etc/supervisor/conf.d/supervisord.conf
