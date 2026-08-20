@@ -2,6 +2,16 @@
 
 set -e
 
+echo "Initializing Valkey..."
+if [ ! -d /var/lib/valkey ]; then
+    echo "Creating Valkey data directory..."
+    mkdir -p /var/lib/valkey
+fi
+
+echo "Fixing Valkey data directory permissions..."
+chown -R valkey:valkey /var/lib/valkey
+
+
 echo "Initializing Unbound..."
 
 if [ ! -f /var/lib/unbound/root.key ]; then
