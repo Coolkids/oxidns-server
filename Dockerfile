@@ -18,7 +18,8 @@ RUN apt-get update && \
     net-tools \
     bind9-dnsutils \
     vim \
-    supervisor && \
+    supervisor \
+    valkey-server && \
     rm -rf /var/lib/apt/lists/*
 
 # OxiDNS
@@ -36,6 +37,11 @@ COPY files/root.hints /var/lib/unbound/root.hints
 
 # Supervisor
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# valkey
+RUN mkdir -p /var/lib/valkey /var/log/valkey && \
+    chown -R valkey:valkey /var/lib/valkey /var/log/valkey
+COPY valkey.conf /etc/valkey/valkey.conf
 
 # Entrypoint
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh

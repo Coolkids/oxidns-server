@@ -14,6 +14,21 @@ chown -R unbound:unbound /var/lib/unbound
 
 echo "Checking Unbound configuration..."
 unbound-checkconf /etc/unbound/unbound.conf
+echo "Checking if Unbound is already running..."
+
+if unbound-control -c "/etc/unbound/unbound.conf" status >/dev/null 2>&1; then
+    echo "Existing Unbound instance detected, stopping..."
+
+    unbound-control -c "/etc/unbound/unbound.conf" stop || true
+
+    # 等待 Unbound 完全退出
+    for i in 1 2 3 4 5; do
+        if ! unbound-control -c "/etc/unbound/unbound.conf" status >/dev/null 2>&1; then
+            break
+        fi
+        sleep 1
+    done
+fi
 
 echo "Checking OxiDNS configuration..."
 oxidns check -c /etc/oxidns/config.yaml
