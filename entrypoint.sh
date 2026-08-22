@@ -22,10 +22,7 @@ fi
 
 chown -R unbound:unbound /var/lib/unbound
 
-echo "Checking Unbound configuration..."
-unbound-checkconf /etc/unbound/unbound.conf
 echo "Checking if Unbound is already running..."
-
 if unbound-control -c "/etc/unbound/unbound.conf" status >/dev/null 2>&1; then
     echo "Existing Unbound instance detected, stopping..."
 
@@ -44,6 +41,5 @@ echo "Checking OxiDNS configuration..."
 oxidns check -c /etc/oxidns/config.yaml
 
 echo "Starting Supervisor..."
-
 exec /usr/bin/supervisord \
     -c /etc/supervisor/conf.d/supervisord.conf
