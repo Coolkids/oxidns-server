@@ -13,6 +13,7 @@ RUN apt-get update && \
     wget \
     unbound \
     unbound-anchor \
+    libhiredis-dev \
     dns-root-data \
     procps \
     net-tools \
