@@ -1,56 +1,80 @@
 FROM svenshi/oxidns:latest AS oxidns
 
-FROM debian:13-slim
+FROM alpine:latest
 
 LABEL maintainer="Coolkid"
 
-ENV DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+# 安装运行依赖
+RUN apk add --no-cache \
     ca-certificates \
     curl \
-    wget \
     unbound \
     unbound-anchor \
-    dns-root-data \
+    unbound-dbg \
+    hiredis \
     procps \
     net-tools \
-    bind9-dnsutils \
+    bind-tools \
     vim \
     supervisor \
-    valkey-server && \
-    rm -rf /var/lib/apt/lists/*
+    valkey
 
-# OxiDNS
-RUN mkdir -p /etc/oxidns \
+# 创建目录
+RUN mkdir -p \
+    /etc/oxidns \
     /var/lib/oxidns \
-    /var/lib/unbound
+    /var/lib/unbound \
+    /var/lib/valkey \
+    /var/log/valkey
+
+# =========================
+# OxiDNS
+# =========================
 
 COPY --from=oxidns /usr/local/bin/oxidns /usr/local/bin/oxidns
 COPY --from=oxidns /etc/oxidns/config.yaml /etc/oxidns/config.yaml
 COPY --from=oxidns /etc/oxidns/webui /etc/oxidns/webui
 
+# =========================
 # Unbound
+# =========================
+
 COPY unbound.conf /etc/unbound/unbound.conf
-COPY files/root.hints /var/lib/unbound/root.hints
 
-# Supervisor
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+# 构建镜像时下载最新 root.hints
+RUN curl -fL --retry 3 --retry-delay 2 \
+        -o /var/lib/unbound/root.hints \
+        https://www.internic.net/domain/named.root && \
+    test -s /var/lib/unbound/root.hints && \
+    chown -R unbound:unbound /var/lib/unbound
 
-# valkey
-RUN mkdir -p /var/lib/valkey /var/log/valkey && \
-    chown -R valkey:valkey /var/lib/valkey /var/log/valkey
+# =========================
+# Valkey
+# =========================
+
+RUN chown -R valkey:valkey \
+    /var/lib/valkey \
+    /var/log/valkey
+
 COPY valkey.conf /etc/valkey/valkey.conf
 
+# =========================
+# Supervisor
+# =========================
+
+COPY supervisord.conf /etc/supervisord.conf
+
+# =========================
 # Entrypoint
+# =========================
+
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 
-RUN chmod +x /usr/local/bin/entrypoint.sh \
-    /usr/local/bin/oxidns && \
-    chown -R unbound:unbound /var/lib/unbound && \
+RUN chmod +x \
+        /usr/local/bin/entrypoint.sh \
+        /usr/local/bin/oxidns && \
     unbound-anchor -a /var/lib/unbound/root.key || \
-    echo "Please check root.key"
+        echo "Warning: failed to generate root.key"
 
 EXPOSE 853
 EXPOSE 443

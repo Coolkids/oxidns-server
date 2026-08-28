@@ -42,4 +42,4 @@ oxidns check -c /etc/oxidns/config.yaml
 
 echo "Starting Supervisor..."
 exec /usr/bin/supervisord \
-    -c /etc/supervisor/conf.d/supervisord.conf
+    -c /etc/supervisord.conf
