@@ -9,11 +9,10 @@ RUN apk add --no-cache \
     ca-certificates \
     curl \
     unbound \
-    unbound-anchor \
-    unbound-dbg \
     hiredis \
-    procps \
+    procps-ng \
     net-tools \
+    iputils-ping \
     bind-tools \
     vim \
     supervisor \
