@@ -1,331 +1,273 @@
-<!DOCTYPE html>
+<!doctype html>
+
 <html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
 
-<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <meta charset="UTF-8">
+    <title>Unbound Dashboard</title>
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <link rel="stylesheet" href="/style.css" />
+  </head>
 
-    <title>
-        Unbound DNS Dashboard
-    </title>
-
-    <link
-        rel="stylesheet"
-        href="/style.css"
-    >
-
-</head>
-
-<body>
-
-<div class="container">
-
-    <header>
-
+  <body>
+    <div class="container">
+      <header>
         <div>
+          <h1>Unbound DNS Dashboard</h1>
 
-            <h1>
-                Unbound DNS Dashboard
-            </h1>
-
-            <div class="subtitle">
-                实时递归 DNS 性能监控
-            </div>
-
+          <p>实时性能监控</p>
         </div>
 
         <div class="status">
+          <span id="status-dot" class="status-dot"></span>
 
-            <span
-                id="status-dot"
-                class="status-dot"
-            ></span>
-
-            <span id="status-text">
-                Connecting...
-            </span>
-
+          <span id="status-text"> Connecting </span>
         </div>
+      </header>
 
-    </header>
+      <div class="tabs">
+        <button class="tab active" data-tab="dashboard">Dashboard</button>
 
+        <button class="tab" data-tab="raw">Raw Statistics</button>
+      </div>
 
-    <section class="metrics-grid">
+      <!-- Dashboard -->
 
-        <div class="card primary">
+      <div id="dashboard" class="tab-content active">
+        <section class="metrics-grid">
+          <div class="card primary">
+            <div class="card-title">当前 QPS</div>
 
-            <div class="card-title">
-                当前 QPS
-            </div>
+            <div id="qps" class="metric">-</div>
+          </div>
 
-            <div
-                class="metric"
-                id="qps"
-            >
-                -
-            </div>
+          <div class="card">
+            <div class="card-title">Cache Hit Rate</div>
 
-            <div class="metric-description">
-                Queries Per Second
-            </div>
+            <div id="cache-hit-rate" class="metric">-</div>
+          </div>
 
-        </div>
+          <div class="card">
+            <div class="card-title">Avg Recursion Time</div>
 
+            <div id="recursion-time" class="metric">-</div>
+          </div>
 
-        <div class="card">
+          <div class="card">
+            <div class="card-title">Memory</div>
 
-            <div class="card-title">
-                缓存命中率
-            </div>
+            <div id="memory" class="metric">-</div>
+          </div>
+        </section>
 
-            <div
-                class="metric"
-                id="cache-hit-rate"
-            >
-                -
-            </div>
+        <section class="metrics-grid">
+          <div class="card">
+            <div class="card-title">Total Queries</div>
 
-            <div class="metric-description">
+            <div id="total-queries" class="metric small">-</div>
+          </div>
 
-                <span id="cache-hits">
-                    0
-                </span>
+          <div class="card">
+            <div class="card-title">CacheDB Queries</div>
 
-                Hits
+            <div id="cachedb" class="metric small">-</div>
+          </div>
 
-            </div>
+          <div class="card">
+            <div class="card-title">DNSSEC Bogus</div>
 
-        </div>
+            <div id="bogus" class="metric small">-</div>
+          </div>
 
+          <div class="card">
+            <div class="card-title">Requestlist Current</div>
 
-        <div class="card">
+            <div id="request-current" class="metric small">-</div>
+          </div>
+        </section>
 
-            <div class="card-title">
-                平均递归延迟
-            </div>
+        <section class="chart-card">
+          <div class="chart-header">
+            <h2>Real-time QPS</h2>
 
-            <div
-                class="metric"
-                id="latency"
-            >
-                -
-            </div>
+            <span> 最近 5 分钟 </span>
+          </div>
 
-            <div class="metric-description">
-                milliseconds
-            </div>
+          <canvas id="qps-chart"></canvas>
+        </section>
 
-        </div>
+        <section class="chart-card">
+          <div class="chart-header">
+            <h2>Response Time Histogram</h2>
 
+            <span> Query latency distribution </span>
+          </div>
 
-        <div class="card">
+          <div class="histogram-container">
+            <canvas id="histogram-chart"></canvas>
+          </div>
+        </section>
 
-            <div class="card-title">
-                内存使用
-            </div>
-
-            <div
-                class="metric"
-                id="memory"
-            >
-                -
-            </div>
-
-            <div class="metric-description">
-                Unbound process memory
-            </div>
-
-        </div>
-
-    </section>
-
-
-    <section class="chart-card">
-
-        <div class="chart-header">
-
-            <h2>
-                实时 QPS
-            </h2>
-
-            <span>
-                最近 5 分钟
-            </span>
-
-        </div>
-
-        <canvas
-            id="qps-chart"
-        ></canvas>
-
-    </section>
-
-
-    <section class="details-grid">
-
-
-        <div class="details-card">
-
-            <h2>
-                查询统计
-            </h2>
+        <section class="details-grid">
+          <div class="details-card">
+            <h2>Request List</h2>
 
             <div class="stat-row">
-
-                <span>
-                    Total Queries
-                </span>
-
-                <strong
-                    id="total-queries"
-                >
-                    -
-                </strong>
-
+              <span>Average</span>
+              <strong id="request-avg">-</strong>
             </div>
 
             <div class="stat-row">
-
-                <span>
-                    Recursive Queries
-                </span>
-
-                <strong
-                    id="recursive-queries"
-                >
-                    -
-                </strong>
-
+              <span>Maximum</span>
+              <strong id="request-max">-</strong>
             </div>
 
             <div class="stat-row">
-
-                <span>
-                    UDP Queries
-                </span>
-
-                <strong
-                    id="udp-queries"
-                >
-                    -
-                </strong>
-
+              <span>Current All</span>
+              <strong id="request-all">-</strong>
             </div>
 
             <div class="stat-row">
-
-                <span>
-                    TCP Queries
-                </span>
-
-                <strong
-                    id="tcp-queries"
-                >
-                    -
-                </strong>
-
+              <span>Current User</span>
+              <strong id="request-user">-</strong>
             </div>
 
+            <div class="stat-row">
+              <span>Current Replies</span>
+              <strong id="request-replies">-</strong>
+            </div>
+
+            <div class="stat-row">
+              <span>Overwritten</span>
+              <strong id="request-overwritten">-</strong>
+            </div>
+
+            <div class="stat-row">
+              <span>Exceeded</span>
+              <strong id="request-exceeded">-</strong>
+            </div>
+          </div>
+
+          <div class="details-card">
+            <h2>Cache Count</h2>
+
+            <div class="stat-row">
+              <span>Message Cache</span>
+              <strong id="cache-message">-</strong>
+            </div>
+
+            <div class="stat-row">
+              <span>RRset Cache</span>
+              <strong id="cache-rrset">-</strong>
+            </div>
+
+            <div class="stat-row">
+              <span>Infra Cache</span>
+              <strong id="cache-infra">-</strong>
+            </div>
+
+            <div class="stat-row">
+              <span>Key Cache</span>
+              <strong id="cache-key">-</strong>
+            </div>
+          </div>
+
+          <div class="details-card">
+            <h2>DNSSEC</h2>
+
+            <div class="stat-row">
+              <span>Secure Answers</span>
+              <strong id="dnssec-secure">-</strong>
+            </div>
+
+            <div class="stat-row">
+              <span>Bogus Answers</span>
+              <strong id="dnssec-bogus">-</strong>
+            </div>
+
+            <div class="stat-row">
+              <span>RRset Bogus</span>
+              <strong id="rrset-bogus">-</strong>
+            </div>
+
+            <div class="stat-row">
+              <span>Validation Operations</span>
+              <strong id="valops">-</strong>
+            </div>
+          </div>
+
+          <div class="details-card">
+            <h2>Recursion</h2>
+
+            <div class="stat-row">
+              <span>Average</span>
+              <strong id="recursion-avg">-</strong>
+            </div>
+
+            <div class="stat-row">
+              <span>Median</span>
+              <strong id="recursion-median">-</strong>
+            </div>
+
+            <div class="stat-row">
+              <span>Recursive Replies</span>
+              <strong id="recursive-replies">-</strong>
+            </div>
+          </div>
+
+          <div class="details-card">
+            <h2>Cache Performance</h2>
+
+            <div class="stat-row">
+              <span>Cache Hits</span>
+              <strong id="cache-hits">-</strong>
+            </div>
+
+            <div class="stat-row">
+              <span>Cache Misses</span>
+              <strong id="cache-misses">-</strong>
+            </div>
+
+            <div class="stat-row">
+              <span>Prefetch</span>
+              <strong id="prefetch">-</strong>
+            </div>
+
+            <div class="stat-row">
+              <span>Expired Answers</span>
+              <strong id="expired">-</strong>
+            </div>
+          </div>
+
+          <div class="details-card">
+            <h2>System</h2>
+
+            <div class="stat-row">
+              <span>Uptime</span>
+              <strong id="uptime">-</strong>
+            </div>
+
+            <div class="stat-row">
+              <span>Last Update</span>
+              <strong id="last-update">-</strong>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Raw -->
+
+      <div id="raw" class="tab-content">
+        <div class="raw-toolbar">
+          <button id="copy-raw">Copy</button>
         </div>
 
+        <pre id="raw-stats"></pre>
+      </div>
+    </div>
 
-        <div class="details-card">
-
-            <h2>
-                缓存统计
-            </h2>
-
-            <div class="stat-row">
-
-                <span>
-                    Cache Hits
-                </span>
-
-                <strong
-                    id="cache-hits-detail"
-                >
-                    -
-                </strong>
-
-            </div>
-
-            <div class="stat-row">
-
-                <span>
-                    Cache Misses
-                </span>
-
-                <strong
-                    id="cache-misses"
-                >
-                    -
-                </strong>
-
-            </div>
-
-            <div class="stat-row">
-
-                <span>
-                    Prefetch
-                </span>
-
-                <strong
-                    id="prefetch"
-                >
-                    -
-                </strong>
-
-            </div>
-
-        </div>
-
-
-        <div class="details-card">
-
-            <h2>
-                系统状态
-            </h2>
-
-            <div class="stat-row">
-
-                <span>
-                    API 更新时间
-                </span>
-
-                <strong
-                    id="update-time"
-                >
-                    -
-                </strong>
-
-            </div>
-
-            <div class="stat-row">
-
-                <span>
-                    自动刷新
-                </span>
-
-                <strong>
-                    2 seconds
-                </strong>
-
-            </div>
-
-        </div>
-
-    </section>
-
-</div>
-
-
-<script src="/app.js"></script>
-
-</body>
-
+    <script src="/app.js"></script>
+  </body>
 </html>
