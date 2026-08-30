@@ -294,6 +294,8 @@ h1 {
 }
 
 .histogram-container {
+  position: relative;
+
   overflow-x: auto;
 }
 
@@ -301,4 +303,58 @@ h1 {
   min-width: 900px;
   width: 100%;
   height: 450px;
+}
+
+.histogram-tooltip {
+  display: none;
+
+  position: absolute;
+
+  z-index: 100;
+
+  min-width: 170px;
+
+  padding: 12px 14px;
+
+  background: #111827;
+
+  color: #ffffff;
+
+  border-radius: 8px;
+
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+
+  pointer-events: none;
+
+  font-size: 12px;
+
+  line-height: 1.5;
+}
+
+.tooltip-title {
+  font-weight: 700;
+
+  margin-bottom: 8px;
+
+  padding-bottom: 7px;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.tooltip-row {
+  display: flex;
+
+  justify-content: space-between;
+
+  gap: 20px;
+
+  margin-top: 4px;
+}
+
+.tooltip-row span {
+  opacity: 0.7;
+}
+
+.tooltip-row strong {
+  font-variant-numeric: tabular-nums;
 }

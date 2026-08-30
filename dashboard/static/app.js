@@ -172,6 +172,100 @@ function drawLineChart(canvas, data) {
   ctx.stroke();
 }
 
+let histogramData = [];
+
+let histogramLayout = null;
+
+function formatDuration(valueSeconds) {
+  const value = Number(valueSeconds) || 0;
+
+  if (value === 0) {
+    return "0ns";
+  }
+
+  if (value < 0.000001) {
+    const ns = value * 1000000000;
+
+    return (ns < 10 ? ns.toFixed(1) : ns.toFixed(0)) + "ns";
+  }
+
+  if (value < 0.001) {
+    const us = value * 1000000;
+
+    return (us < 10 ? us.toFixed(1) : us.toFixed(0)) + "µs";
+  }
+
+  if (value < 1) {
+    const ms = value * 1000;
+
+    return (ms < 10 ? ms.toFixed(1) : ms.toFixed(0)) + "ms";
+  }
+
+  return (value < 10 ? value.toFixed(2) : value.toFixed(1)) + "s";
+}
+
+function formatHistogramLabel(start, end) {
+  const startValue = Number(start) || 0;
+
+  const endValue = Number(end) || 0;
+
+  if (startValue === 0) {
+    return "<" + formatDuration(endValue);
+  }
+
+  return formatDuration(startValue) + "–" + formatDuration(endValue);
+}
+
+function formatCount(value) {
+  return Number(value || 0).toLocaleString();
+}
+
+function formatPercent(value) {
+  if (value === 0) {
+    return "0%";
+  }
+
+  if (value < 0.01) {
+    return value.toFixed(4) + "%";
+  }
+
+  if (value < 1) {
+    return value.toFixed(2) + "%";
+  }
+
+  return value.toFixed(2) + "%";
+}
+
+function formatLogAxisValue(value) {
+  if (value >= 1000000) {
+    return (value / 1000000).toFixed(value % 1000000 === 0 ? 0 : 1) + "M";
+  }
+
+  if (value >= 1000) {
+    return (value / 1000).toFixed(value % 1000 === 0 ? 0 : 1) + "K";
+  }
+
+  return String(Math.round(value));
+}
+
+function getLogTicks(maxValue) {
+  const ticks = [];
+
+  let value = 1;
+
+  while (value <= maxValue) {
+    ticks.push(value);
+
+    value *= 10;
+  }
+
+  if (ticks[ticks.length - 1] < maxValue) {
+    ticks.push(value);
+  }
+
+  return ticks;
+}
+
 function drawHistogram(histogram) {
   const canvas = document.getElementById("histogram-chart");
 
@@ -181,68 +275,260 @@ function drawHistogram(histogram) {
 
   const dpr = window.devicePixelRatio || 1;
 
-  canvas.width = rect.width * dpr;
+  const width = rect.width;
 
-  canvas.height = 450 * dpr;
+  const height = 560;
 
-  canvas.style.height = "450px";
+  canvas.width = width * dpr;
+
+  canvas.height = height * dpr;
+
+  canvas.style.height = height + "px";
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
 
   ctx.scale(dpr, dpr);
 
-  const width = rect.width;
-
-  const height = 450;
-
   ctx.clearRect(0, 0, width, height);
 
-  if (histogram.length === 0) {
+  if (!histogram || histogram.length === 0) {
+    histogramLayout = null;
+
     return;
   }
 
-  const padding = 60;
+  histogramData = histogram.map((item) => ({
+    start: Number(item.start) || 0,
 
-  const max = Math.max(...histogram.map((item) => item.count), 1);
+    end: Number(item.end) || 0,
 
-  const chartWidth = width - padding * 2;
+    count: Number(item.count) || 0,
+  }));
 
-  const chartHeight = height - padding * 2;
+  const totalCount = histogramData.reduce(
+    (total, item) => total + item.count,
+    0,
+  );
 
-  const barWidth = chartWidth / histogram.length;
+  const maxCount = Math.max(...histogramData.map((item) => item.count), 1);
 
-  histogram.forEach((item, index) => {
-    const barHeight = (item.count / max) * chartHeight;
+  /*
+   * 对数轴最大值
+   */
 
-    const x = padding + index * barWidth;
+  const maxLog = Math.ceil(Math.log10(maxCount));
 
-    const y = height - padding - barHeight;
+  const minLog = 0;
 
-    ctx.fillStyle = "#2563eb";
+  const padding = {
+    top: 30,
 
-    ctx.fillRect(x, y, Math.max(barWidth - 2, 1), barHeight);
-  });
+    right: 30,
 
-  ctx.fillStyle = "#6b7280";
+    bottom: 180,
+
+    left: 80,
+  };
+
+  const chartWidth = width - padding.left - padding.right;
+
+  const chartHeight = height - padding.top - padding.bottom;
+
+  /*
+   * 对数坐标转换
+   */
+
+  function logToY(value) {
+    if (value <= 0) {
+      return padding.top + chartHeight;
+    }
+
+    const logValue = Math.log10(value);
+
+    const ratio = (logValue - minLog) / (maxLog - minLog || 1);
+
+    return padding.top + chartHeight - ratio * chartHeight;
+  }
+
+  /*
+   * Y 轴网格和刻度
+   */
+
+  const ticks = getLogTicks(Math.pow(10, maxLog));
 
   ctx.font = "11px sans-serif";
 
-  histogram.forEach((item, index) => {
-    // 只显示部分标签
-    if (index % 4 !== 0) {
+  ctx.textAlign = "right";
+
+  ctx.textBaseline = "middle";
+
+  ticks.forEach((value) => {
+    const y = logToY(value);
+
+    if (y < padding.top - 1 || y > padding.top + chartHeight + 1) {
       return;
     }
 
-    const x = padding + index * barWidth;
+    ctx.beginPath();
+
+    ctx.moveTo(padding.left, y);
+
+    ctx.lineTo(width - padding.right, y);
+
+    ctx.strokeStyle = "#e5e7eb";
+
+    ctx.lineWidth = 1;
+
+    ctx.stroke();
+
+    ctx.fillStyle = "#6b7280";
+
+    ctx.fillText(formatLogAxisValue(value), padding.left - 10, y);
+  });
+
+  /*
+   * X 轴
+   */
+
+  const baselineY = padding.top + chartHeight;
+
+  ctx.beginPath();
+
+  ctx.moveTo(padding.left, baselineY);
+
+  ctx.lineTo(width - padding.right, baselineY);
+
+  ctx.strokeStyle = "#d1d5db";
+
+  ctx.lineWidth = 1;
+
+  ctx.stroke();
+
+  /*
+   * 柱子
+   */
+
+  const slotWidth = chartWidth / histogramData.length;
+
+  const barWidth = Math.max(1, slotWidth * 0.75);
+
+  const bars = [];
+
+  histogramData.forEach((item, index) => {
+    const centerX = padding.left + index * slotWidth + slotWidth / 2;
+
+    const x = centerX - barWidth / 2;
+
+    let y = baselineY;
+
+    let barHeight = 0;
+
+    if (item.count > 0) {
+      y = logToY(item.count);
+
+      barHeight = baselineY - y;
+    }
+
+    /*
+     * 鼠标命中区域
+     * 即使 count=0 也保留
+     */
+
+    bars.push({
+      x: centerX - slotWidth / 2,
+
+      width: slotWidth,
+
+      y: y,
+
+      height: barHeight,
+
+      data: item,
+    });
+
+    /*
+     * 柱状图
+     */
+
+    if (item.count > 0) {
+      ctx.fillStyle = "#2563eb";
+
+      ctx.fillRect(x, y, barWidth, Math.max(barHeight, 1));
+    }
+
+    /*
+     * X 轴标签
+     */
+
+    const label = formatHistogramLabel(item.start, item.end);
 
     ctx.save();
 
-    ctx.translate(x, height - 15);
+    ctx.translate(centerX, baselineY + 12);
 
-    ctx.rotate(-Math.PI / 4);
+    ctx.rotate(Math.PI / 2);
 
-    ctx.fillText(item.label, 0, 0);
+    ctx.fillStyle = "#6b7280";
+
+    ctx.font = "11px sans-serif";
+
+    ctx.textAlign = "left";
+
+    ctx.textBaseline = "middle";
+
+    ctx.fillText(label, 0, 0);
 
     ctx.restore();
   });
+
+  /*
+   * Y 轴标题
+   */
+
+  ctx.save();
+
+  ctx.translate(18, padding.top + chartHeight / 2);
+
+  ctx.rotate(-Math.PI / 2);
+
+  ctx.fillStyle = "#6b7280";
+
+  ctx.font = "12px sans-serif";
+
+  ctx.textAlign = "center";
+
+  ctx.fillText("Queries (log scale)", 0, 0);
+
+  ctx.restore();
+
+  /*
+   * X 轴标题
+   */
+
+  ctx.fillStyle = "#6b7280";
+
+  ctx.font = "12px sans-serif";
+
+  ctx.textAlign = "center";
+
+  ctx.textBaseline = "middle";
+
+  ctx.fillText("Response Time", width / 2, height - 20);
+
+  /*
+   * 保存 Layout
+   * 用于鼠标 Tooltip
+   */
+
+  histogramLayout = {
+    canvas,
+    width,
+    height,
+    padding,
+    baselineY,
+    bars,
+    totalCount,
+  };
 }
 
 function updateStatus(online) {
@@ -298,6 +584,166 @@ async function loadStats() {
     updateStatus(false);
   }
 }
+
+function formatDuration(valueSeconds) {
+  if (valueSeconds === 0) {
+    return "0ns";
+  }
+
+  if (valueSeconds < 0.000001) {
+    return (valueSeconds * 1000000000).toFixed(0) + "ns";
+  }
+
+  if (valueSeconds < 0.001) {
+    const value = valueSeconds * 1000000;
+
+    if (value < 10) {
+      return value.toFixed(1) + "µs";
+    }
+
+    return value.toFixed(0) + "µs";
+  }
+
+  if (valueSeconds < 1) {
+    const value = valueSeconds * 1000;
+
+    if (value < 10) {
+      return value.toFixed(1) + "ms";
+    }
+
+    return value.toFixed(0) + "ms";
+  }
+
+  if (valueSeconds < 10) {
+    return valueSeconds.toFixed(2) + "s";
+  }
+
+  return valueSeconds.toFixed(0) + "s";
+}
+
+function formatHistogramLabel(start, end) {
+  const startText = formatDuration(start);
+
+  const endText = formatDuration(end);
+
+  if (start === 0) {
+    return "<" + endText;
+  }
+
+  return startText + "-" + endText;
+}
+
+function getHistogramMousePosition(event, canvas) {
+  const rect = canvas.getBoundingClientRect();
+
+  return {
+    x: event.clientX - rect.left,
+
+    y: event.clientY - rect.top,
+  };
+}
+
+function showHistogramTooltip(event) {
+  if (!histogramLayout) {
+    return;
+  }
+
+  const { canvas, bars, totalCount } = histogramLayout;
+
+  const tooltip = document.getElementById("histogram-tooltip");
+
+  const position = getHistogramMousePosition(event, canvas);
+
+  const bar = bars.find(
+    (item) => position.x >= item.x && position.x <= item.x + item.width,
+  );
+
+  if (!bar) {
+    tooltip.style.display = "none";
+
+    canvas.style.cursor = "default";
+
+    return;
+  }
+
+  const item = bar.data;
+
+  const percentage = totalCount > 0 ? (item.count / totalCount) * 100 : 0;
+
+  const range = formatHistogramLabel(item.start, item.end);
+
+  tooltip.innerHTML = `
+        <div class="tooltip-title">
+            ${range}
+        </div>
+
+        <div class="tooltip-row">
+
+            <span>
+                Bucket Count
+            </span>
+
+            <strong>
+                ${formatCount(item.count)}
+            </strong>
+
+        </div>
+
+        <div class="tooltip-row">
+
+            <span>
+                Percentage
+            </span>
+
+            <strong>
+                ${formatPercent(percentage)}
+            </strong>
+
+        </div>
+        `;
+
+  const container = canvas.parentElement;
+
+  const containerRect = container.getBoundingClientRect();
+
+  let left = event.clientX - containerRect.left + 15;
+
+  let top = event.clientY - containerRect.top + 15;
+
+  /*
+   * 防止 Tooltip 超出右边界
+   */
+
+  const tooltipWidth = 180;
+
+  if (left + tooltipWidth > container.clientWidth) {
+    left = event.clientX - containerRect.left - tooltipWidth - 15;
+  }
+
+  tooltip.style.left = left + "px";
+
+  tooltip.style.top = top + "px";
+
+  tooltip.style.display = "block";
+
+  canvas.style.cursor = "pointer";
+}
+
+function hideHistogramTooltip() {
+  const tooltip = document.getElementById("histogram-tooltip");
+
+  tooltip.style.display = "none";
+
+  if (histogramLayout) {
+    histogramLayout.canvas.style.cursor = "default";
+  }
+}
+
+const histogramCanvas = document.getElementById("histogram-chart");
+
+histogramCanvas.addEventListener("mousemove", showHistogramTooltip);
+
+histogramCanvas.addEventListener("mouseleave", hideHistogramTooltip);
 
 document.querySelectorAll(".tab").forEach((button) => {
   button.addEventListener("click", () => {
