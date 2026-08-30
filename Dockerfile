@@ -16,7 +16,8 @@ RUN apk add --no-cache \
     bind-tools \
     vim \
     supervisor \
-    valkey
+    valkey \
+    python3
 
 # 创建目录
 RUN mkdir -p \
@@ -58,6 +59,13 @@ RUN chown -R valkey:valkey \
 COPY valkey.conf /etc/valkey/valkey.conf
 
 # =========================
+# dashboard
+# =========================
+COPY dashboard/ /opt/unbound-dashboard/
+
+RUN chmod +x /opt/unbound-dashboard/server.py
+
+# =========================
 # Supervisor
 # =========================
 
@@ -78,5 +86,6 @@ RUN chmod +x \
 EXPOSE 853
 EXPOSE 443
 EXPOSE 9199/tcp
+EXPOSE 9198/tcp
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

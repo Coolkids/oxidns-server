@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Unbound DNS Dashboard
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="/style.css"
+    >
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <header>
+
+        <div>
+
+            <h1>
+                Unbound DNS Dashboard
+            </h1>
+
+            <div class="subtitle">
+                实时递归 DNS 性能监控
+            </div>
+
+        </div>
+
+        <div class="status">
+
+            <span
+                id="status-dot"
+                class="status-dot"
+            ></span>
+
+            <span id="status-text">
+                Connecting...
+            </span>
+
+        </div>
+
+    </header>
+
+
+    <section class="metrics-grid">
+
+        <div class="card primary">
+
+            <div class="card-title">
+                当前 QPS
+            </div>
+
+            <div
+                class="metric"
+                id="qps"
+            >
+                -
+            </div>
+
+            <div class="metric-description">
+                Queries Per Second
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                缓存命中率
+            </div>
+
+            <div
+                class="metric"
+                id="cache-hit-rate"
+            >
+                -
+            </div>
+
+            <div class="metric-description">
+
+                <span id="cache-hits">
+                    0
+                </span>
+
+                Hits
+
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                平均递归延迟
+            </div>
+
+            <div
+                class="metric"
+                id="latency"
+            >
+                -
+            </div>
+
+            <div class="metric-description">
+                milliseconds
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                内存使用
+            </div>
+
+            <div
+                class="metric"
+                id="memory"
+            >
+                -
+            </div>
+
+            <div class="metric-description">
+                Unbound process memory
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section class="chart-card">
+
+        <div class="chart-header">
+
+            <h2>
+                实时 QPS
+            </h2>
+
+            <span>
+                最近 5 分钟
+            </span>
+
+        </div>
+
+        <canvas
+            id="qps-chart"
+        ></canvas>
+
+    </section>
+
+
+    <section class="details-grid">
+
+
+        <div class="details-card">
+
+            <h2>
+                查询统计
+            </h2>
+
+            <div class="stat-row">
+
+                <span>
+                    Total Queries
+                </span>
+
+                <strong
+                    id="total-queries"
+                >
+                    -
+                </strong>
+
+            </div>
+
+            <div class="stat-row">
+
+                <span>
+                    Recursive Queries
+                </span>
+
+                <strong
+                    id="recursive-queries"
+                >
+                    -
+                </strong>
+
+            </div>
+
+            <div class="stat-row">
+
+                <span>
+                    UDP Queries
+                </span>
+
+                <strong
+                    id="udp-queries"
+                >
+                    -
+                </strong>
+
+            </div>
+
+            <div class="stat-row">
+
+                <span>
+                    TCP Queries
+                </span>
+
+                <strong
+                    id="tcp-queries"
+                >
+                    -
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="details-card">
+
+            <h2>
+                缓存统计
+            </h2>
+
+            <div class="stat-row">
+
+                <span>
+                    Cache Hits
+                </span>
+
+                <strong
+                    id="cache-hits-detail"
+                >
+                    -
+                </strong>
+
+            </div>
+
+            <div class="stat-row">
+
+                <span>
+                    Cache Misses
+                </span>
+
+                <strong
+                    id="cache-misses"
+                >
+                    -
+                </strong>
+
+            </div>
+
+            <div class="stat-row">
+
+                <span>
+                    Prefetch
+                </span>
+
+                <strong
+                    id="prefetch"
+                >
+                    -
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="details-card">
+
+            <h2>
+                系统状态
+            </h2>
+
+            <div class="stat-row">
+
+                <span>
+                    API 更新时间
+                </span>
+
+                <strong
+                    id="update-time"
+                >
+                    -
+                </strong>
+
+            </div>
+
+            <div class="stat-row">
+
+                <span>
+                    自动刷新
+                </span>
+
+                <strong>
+                    2 seconds
+                </strong>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<script src="/app.js"></script>
+
+</body>
+
+</html>
