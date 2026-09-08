@@ -157,6 +157,7 @@ function drawQpsChart() {
   const padding = { top: 18, right: 18, bottom: 32, left: 48 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
+  // QPS 使用线性坐标；不要使用 log10，避免低流量波动被放大。
   const max = Math.max(...history.map((item) => item.qps), 1) * 1.15;
 
   ctx.font = "11px ui-monospace, SFMono-Regular, monospace";
@@ -173,6 +174,15 @@ function drawQpsChart() {
     ctx.fillStyle = "#7b8b9b";
     ctx.fillText(value.toFixed(1), padding.left - 9, y);
   }
+
+  ctx.save();
+  ctx.translate(15, padding.top + chartHeight / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = "#7b8b9b";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("QPS", 0, 0);
+  ctx.restore();
 
   if (history.length < 2) return;
   const points = history.map((item, index) => ({
