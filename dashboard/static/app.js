@@ -4,14 +4,18 @@ let latestRaw = "";
 let latestHistogram = [];
 let histogramLayout = null;
 
-const numberFormatter = new Intl.NumberFormat("zh-CN");
+const quantityFormatter = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  compactDisplay: "short",
+  maximumFractionDigits: 1,
+});
 
 function number(value) {
   return Number(value || 0);
 }
 
 function formatNumber(value) {
-  return numberFormatter.format(number(value));
+  return quantityFormatter.format(number(value));
 }
 
 function formatPercent(value) {
@@ -19,10 +23,17 @@ function formatPercent(value) {
 }
 
 function formatBytes(value) {
-  const bytes = number(value);
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+  let amount = Math.max(0, number(value));
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let unitIndex = 0;
+
+  while (amount >= 1024 && unitIndex < units.length - 1) {
+    amount /= 1024;
+    unitIndex += 1;
+  }
+
+  if (unitIndex === 0) return `${Math.round(amount)} ${units[unitIndex]}`;
+  return `${amount.toFixed(amount >= 10 ? 1 : 2)} ${units[unitIndex]}`;
 }
 
 function setText(id, value) {
@@ -105,11 +116,16 @@ function updateMetrics(data) {
   const recursion = data.recursion || {};
   const queries = data.queries || {};
   const dnssec = data.dnssec || {};
+  const memory = data.memory || {};
+  const memoryDetails = memory.details || {};
+  const memoryBytes = memory.total_bytes != null
+    ? memory.total_bytes
+    : number(memory.total_mb) * 1024 * 1024;
 
   setText("ecs-cache-hit-rate", formatPercent(ecs.cache_hit_rate));
   setText("ecs-answers", formatNumber(ecs.answers));
   setText("ecs-share", formatPercent(ecs.share));
-  setText("ecs-memory", `${number(ecs.subnet_memory_mb).toFixed(2)} MB`);
+  setText("ecs-memory", formatBytes(ecs.subnet_memory_bytes));
   setText("ecs-memory-bytes", formatBytes(ecs.subnet_memory_bytes));
   setText("ecs-cache-hits", formatNumber(ecs.cache_hits));
   setText("ecs-cache-misses", formatNumber(ecs.cache_misses));
@@ -124,7 +140,12 @@ function updateMetrics(data) {
   setText("recursion-median", `${number(recursion.median_ms).toFixed(2)} ms`);
   setText("request-all", formatNumber(requestlist.current_all));
   setText("request-max", formatNumber(requestlist.max));
-  setText("memory", `${number(data.memory && data.memory.total_mb).toFixed(2)} MB`);
+  setText("memory", formatBytes(memoryBytes));
+  setText("memory-message", formatBytes(memoryDetails.message));
+  setText("memory-rrset", formatBytes(memoryDetails.rrset));
+  setText("memory-subnet", formatBytes(memoryDetails.subnet));
+  setText("memory-iterator", formatBytes(memoryDetails.iterator));
+  setText("memory-validator", formatBytes(memoryDetails.validator));
   setText("dnssec-secure", formatNumber(dnssec.secure));
   setText("dnssec-bogus", formatNumber(dnssec.bogus));
   setText("uptime", formatUptime(data.uptime));
@@ -172,7 +193,7 @@ function drawQpsChart() {
     ctx.lineTo(width - padding.right, y);
     ctx.stroke();
     ctx.fillStyle = "#7b8b9b";
-    ctx.fillText(value.toFixed(1), padding.left - 9, y);
+    ctx.fillText(formatNumber(value), padding.left - 9, y);
   }
 
   ctx.save();
@@ -211,7 +232,10 @@ function duration(value) {
   if (seconds < 0.000001) return `${(seconds * 1e9).toFixed(0)}ns`;
   if (seconds < 0.001) return `${(seconds * 1e6).toFixed(1)}µs`;
   if (seconds < 1) return `${(seconds * 1e3).toFixed(1)}ms`;
-  return `${seconds.toFixed(2)}s`;
+  if (seconds < 60) return `${seconds.toFixed(seconds < 10 ? 2 : 1)}s`;
+  if (seconds < 3600) return `${(seconds / 60).toFixed(1)}min`;
+  if (seconds < 86400) return `${(seconds / 3600).toFixed(1)}h`;
+  return `${(seconds / 86400).toFixed(1)}d`;
 }
 
 function histogramLabel(start, end) {
@@ -232,6 +256,7 @@ function drawHistogram(histogram) {
   const padding = { top: 20, right: 20, bottom: 80, left: 58 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
+  // 直方图纵轴使用线性计数刻度，不使用对数坐标。
   const max = Math.max(...data.map((item) => item.count), 1);
   const baseline = padding.top + chartHeight;
   const slot = chartWidth / data.length;
@@ -306,11 +331,45 @@ document.getElementById("histogram-chart").addEventListener("mousemove", showHis
 document.getElementById("histogram-chart").addEventListener("mouseleave", () => {
   document.getElementById("histogram-tooltip").style.display = "none";
 });
-document.getElementById("copy-raw").addEventListener("click", async (event) => {
+const rawModal = document.getElementById("raw-modal");
+const copyRawButton = document.getElementById("copy-raw");
+const copyUnavailable = document.getElementById("copy-unavailable");
+
+function closeRawModal() {
+  rawModal.classList.remove("open");
+  rawModal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modal-open");
+}
+
+document.getElementById("open-raw").addEventListener("click", () => {
+  rawModal.classList.add("open");
+  rawModal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
+});
+
+document.getElementById("close-raw").addEventListener("click", closeRawModal);
+
+rawModal.addEventListener("click", (event) => {
+  if (event.target === rawModal) closeRawModal();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && rawModal.classList.contains("open")) {
+    closeRawModal();
+  }
+});
+
+// Clipboard API is intentionally available only on HTTPS pages.
+const canCopyRaw = window.location.protocol === "https:" && Boolean(navigator.clipboard);
+copyRawButton.hidden = !canCopyRaw;
+copyUnavailable.hidden = canCopyRaw;
+
+copyRawButton.addEventListener("click", async (event) => {
+  if (!canCopyRaw) return;
   try {
     await navigator.clipboard.writeText(latestRaw);
     event.currentTarget.textContent = "已复制";
-    setTimeout(() => { event.currentTarget.textContent = "复制原始统计"; }, 1400);
+    setTimeout(() => { event.currentTarget.textContent = "复制"; }, 1400);
   } catch (error) {
     console.error(error);
   }

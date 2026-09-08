@@ -180,6 +180,37 @@
           </article>
         </section>
 
+        <section class="panel memory-panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-kicker">MEMORY BREAKDOWN</p>
+              <h3>内存构成</h3>
+            </div>
+            <span class="panel-note">各模块当前占用</span>
+          </div>
+          <div class="memory-grid">
+            <div class="memory-item"><span>Message cache</span><strong id="memory-message">—</strong></div>
+            <div class="memory-item"><span>RRset cache</span><strong id="memory-rrset">—</strong></div>
+            <div class="memory-item"><span>Subnet cache</span><strong id="memory-subnet">—</strong></div>
+            <div class="memory-item"><span>Iterator</span><strong id="memory-iterator">—</strong></div>
+            <div class="memory-item"><span>Validator</span><strong id="memory-validator">—</strong></div>
+          </div>
+        </section>
+
+        <section class="panel raw-performance-panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-kicker">RAW PERFORMANCE DATA</p>
+              <h3>原始性能数据</h3>
+            </div>
+            <div class="raw-actions">
+              <span class="panel-note">stats_noreset · K / M / B / T</span>
+              <button id="open-raw" type="button">查看原始数据</button>
+            </div>
+          </div>
+          <p class="raw-preview-note">原始性能统计不会直接占用主页面空间，点击上方按钮查看完整数据。</p>
+        </section>
+
         <section class="panel histogram-panel">
           <div class="panel-header">
             <div>
@@ -197,9 +228,24 @@
 
       <footer>
         <span>ECS Resolver Console</span>
-        <button id="copy-raw" type="button">复制原始统计</button>
       </footer>
-      <pre id="raw-stats" hidden></pre>
+
+      <div id="raw-modal" class="modal-backdrop" aria-hidden="true">
+        <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="raw-modal-title">
+          <div class="modal-header">
+            <div>
+              <p class="panel-kicker">RAW PERFORMANCE DATA</p>
+              <h3 id="raw-modal-title">原始性能数据</h3>
+            </div>
+            <div class="modal-actions">
+              <span id="copy-unavailable" class="copy-note">HTTP 页面不可复制</span>
+              <button id="copy-raw" type="button" hidden>复制</button>
+              <button id="close-raw" class="modal-close" type="button" aria-label="关闭">×</button>
+            </div>
+          </div>
+          <pre id="raw-stats">等待原始统计数据…</pre>
+        </section>
+      </div>
     </div>
 
     <script src="/app.js"></script>
