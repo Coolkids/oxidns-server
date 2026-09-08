@@ -34,6 +34,20 @@ PORT = int(
 )
 
 
+UNBOUND_CONFIG_CANDIDATES = (
+    os.environ.get("UNBOUND_CONFIG_FILE"),
+    "/etc/unbound/unbound.conf",
+    os.path.join(
+        os.path.dirname(
+            os.path.dirname(
+                os.path.abspath(__file__)
+            )
+        ),
+        "unbound.conf"
+    )
+)
+
+
 previous_queries = None
 previous_time = None
 
@@ -103,6 +117,63 @@ def stat(
         key,
         default
     )
+
+
+def read_ecs_config():
+    """Read the ECS settings that are active in the Unbound config."""
+
+    config = {
+        "enabled": False,
+        "send_client_subnet": False,
+        "always_forward": False,
+        "ipv4_prefix": None,
+        "ipv6_prefix": None,
+        "tree_size_ipv4": None,
+        "tree_size_ipv6": None
+    }
+
+    config_path = next(
+        (
+            path for path in UNBOUND_CONFIG_CANDIDATES
+            if path and os.path.isfile(path)
+        ),
+        None
+    )
+
+    if not config_path:
+        return config
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as config_file:
+            for line in config_file:
+                line = line.split("#", 1)[0].strip()
+
+                if not line or ":" not in line:
+                    continue
+
+                key, value = (
+                    part.strip() for part in line.split(":", 1)
+                )
+
+                if key == "module-config":
+                    modules = value.replace('"', "").replace("'", "").split()
+                    config["enabled"] = "subnetcache" in modules
+                elif key == "send-client-subnet":
+                    config["send_client_subnet"] = True
+                elif key == "client-subnet-always-forward":
+                    config["always_forward"] = value.lower() == "yes"
+                elif key == "max-client-subnet-ipv4":
+                    config["ipv4_prefix"] = value
+                elif key == "max-client-subnet-ipv6":
+                    config["ipv6_prefix"] = value
+                elif key == "max-ecs-tree-size-ipv4":
+                    config["tree_size_ipv4"] = value
+                elif key == "max-ecs-tree-size-ipv6":
+                    config["tree_size_ipv6"] = value
+    except (OSError, UnicodeError):
+        return config
+
+    return config
 
 
 def memory_mb(value):
@@ -214,20 +285,44 @@ def build_response(stats):
     )
 
 
-    cache_total = (
-        cache_hits
-        + cache_misses
+    # ECS has its own cache path. A subnet-cache hit is deliberately not
+    # mixed into the ordinary cache hit rate: Unbound counts it as a main
+    # cache miss after the first cache lookup.
+    ecs_answers = stat(
+        stats,
+        "num.query.subnet"
     )
 
+    ecs_cache_hits = stat(
+        stats,
+        "num.query.subnet_cache"
+    )
 
-    cache_hit_rate = 0
+    ecs_cache_misses = max(
+        ecs_answers - ecs_cache_hits,
+        0
+    )
 
+    ecs_cache_lookups = (
+        ecs_cache_hits
+        + ecs_cache_misses
+    )
 
-    if cache_total > 0:
+    ecs_cache_hit_rate = 0
 
-        cache_hit_rate = (
-            cache_hits
-            / cache_total
+    if ecs_cache_lookups > 0:
+        ecs_cache_hit_rate = (
+            ecs_cache_hits
+            / ecs_cache_lookups
+            * 100
+        )
+
+    ecs_share = 0
+
+    if total_queries > 0:
+        ecs_share = (
+            ecs_answers
+            / total_queries
             * 100
         )
 
@@ -522,12 +617,42 @@ def build_response(stats):
                 cache_hits,
 
             "misses":
-                cache_misses,
+                cache_misses
+        },
 
-            "hit_rate": round(
-                cache_hit_rate,
+
+        "ecs": {
+
+            "answers":
+                ecs_answers,
+
+            "cache_hits":
+                ecs_cache_hits,
+
+            "cache_misses":
+                ecs_cache_misses,
+
+            "cache_lookups":
+                ecs_cache_lookups,
+
+            "cache_hit_rate": round(
+                ecs_cache_hit_rate,
                 2
-            )
+            ),
+
+            "share": round(
+                ecs_share,
+                2
+            ),
+
+            "subnet_memory_bytes":
+                memory_stats["subnet"],
+
+            "subnet_memory_mb": memory_mb(
+                memory_stats["subnet"]
+            ),
+
+            "config": read_ecs_config()
         },
 
 

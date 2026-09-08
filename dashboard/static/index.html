@@ -1,273 +1,205 @@
 <!doctype html>
-
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <title>Unbound Dashboard</title>
-
+    <meta name="theme-color" content="#08111f" />
+    <title>ECS Resolver Console</title>
     <link rel="stylesheet" href="/style.css" />
   </head>
 
   <body>
-    <div class="container">
-      <header>
-        <div>
-          <h1>Unbound DNS Dashboard</h1>
-
-          <p>实时性能监控</p>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">◈</div>
+          <div>
+            <p class="eyebrow">OXIDNS / UNBOUND</p>
+            <h1>ECS Resolver Console</h1>
+          </div>
         </div>
 
-        <div class="status">
+        <div class="connection-status">
           <span id="status-dot" class="status-dot"></span>
-
-          <span id="status-text"> Connecting </span>
+          <div>
+            <strong id="status-text">连接中</strong>
+            <span id="last-update">等待数据</span>
+          </div>
         </div>
       </header>
 
-      <div class="tabs">
-        <button class="tab active" data-tab="dashboard">Dashboard</button>
-
-        <button class="tab" data-tab="raw">Raw Statistics</button>
-      </div>
-
-      <!-- Dashboard -->
-
-      <div id="dashboard" class="tab-content active">
-        <section class="metrics-grid">
-          <div class="card primary">
-            <div class="card-title">当前 QPS</div>
-
-            <div id="qps" class="metric">-</div>
+      <main>
+        <section class="intro">
+          <div>
+            <div class="label-row">
+              <span class="live-label"><span></span> LIVE TELEMETRY</span>
+              <span class="scope-label">ECS 专属视图</span>
+            </div>
+            <h2>按客户端网段观察解析质量</h2>
+            <p>
+              本页使用 Unbound 的 subnet cache 统计判断 ECS，不使用普通 cache hit rate。
+              所有计数均为累计值。
+            </p>
           </div>
-
-          <div class="card">
-            <div class="card-title">Cache Hit Rate</div>
-
-            <div id="cache-hit-rate" class="metric">-</div>
-          </div>
-
-          <div class="card">
-            <div class="card-title">Avg Recursion Time</div>
-
-            <div id="recursion-time" class="metric">-</div>
-          </div>
-
-          <div class="card">
-            <div class="card-title">Memory</div>
-
-            <div id="memory" class="metric">-</div>
+          <div class="ecs-mode-card">
+            <span>当前模式</span>
+            <strong id="ecs-mode">检测中</strong>
+            <small id="ecs-mode-detail">等待 subnetcache 统计</small>
           </div>
         </section>
 
-        <section class="metrics-grid">
-          <div class="card">
-            <div class="card-title">Total Queries</div>
+        <section class="metrics-grid ecs-metrics" aria-label="ECS 指标">
+          <article class="metric-card metric-featured">
+            <div class="metric-heading">
+              <span>ECS cache 命中率</span>
+              <span class="metric-icon">↗</span>
+            </div>
+            <strong id="ecs-cache-hit-rate" class="metric-value">—</strong>
+            <p>subnet cache hits / ECS 应答</p>
+          </article>
 
-            <div id="total-queries" class="metric small">-</div>
-          </div>
+          <article class="metric-card">
+            <div class="metric-heading">
+              <span>ECS 应答</span>
+              <span class="metric-kicker">累计查询</span>
+            </div>
+            <strong id="ecs-answers" class="metric-value">—</strong>
+            <p>返回了 EDNS Client Subnet 数据的查询</p>
+          </article>
 
-          <div class="card">
-            <div class="card-title">CacheDB Queries</div>
+          <article class="metric-card">
+            <div class="metric-heading">
+              <span>ECS 流量占比</span>
+              <span class="metric-kicker">QUERY SHARE</span>
+            </div>
+            <strong id="ecs-share" class="metric-value">—</strong>
+            <p>ECS 应答 / 全部查询</p>
+          </article>
 
-            <div id="cachedb" class="metric small">-</div>
-          </div>
-
-          <div class="card">
-            <div class="card-title">DNSSEC Bogus</div>
-
-            <div id="bogus" class="metric small">-</div>
-          </div>
-
-          <div class="card">
-            <div class="card-title">Requestlist Current</div>
-
-            <div id="request-current" class="metric small">-</div>
-          </div>
+          <article class="metric-card">
+            <div class="metric-heading">
+              <span>Subnet cache 内存</span>
+              <span class="metric-kicker">MEMORY</span>
+            </div>
+            <strong id="ecs-memory" class="metric-value">—</strong>
+            <p id="ecs-memory-bytes">—</p>
+          </article>
         </section>
 
-        <section class="chart-card">
-          <div class="chart-header">
-            <h2>Real-time QPS</h2>
+        <section class="workspace-grid">
+          <article class="panel chart-panel">
+            <div class="panel-header">
+              <div>
+                <p class="panel-kicker">TRAFFIC</p>
+                <h3>实时查询速率</h3>
+              </div>
+              <span class="panel-note">最近 5 分钟</span>
+            </div>
+            <canvas id="qps-chart" aria-label="实时查询速率图表"></canvas>
+          </article>
 
-            <span> 最近 5 分钟 </span>
-          </div>
-
-          <canvas id="qps-chart"></canvas>
+          <article class="panel ecs-health-panel">
+            <div class="panel-header">
+              <div>
+                <p class="panel-kicker">ECS HEALTH</p>
+                <h3>ECS 环境</h3>
+              </div>
+              <span id="ecs-health-badge" class="health-badge">检测中</span>
+            </div>
+            <div class="health-summary">
+              <strong id="ecs-health-title">正在读取 ECS 统计</strong>
+              <p id="ecs-health-copy">等待 Unbound 返回 subnet cache 数据。</p>
+            </div>
+            <div class="progress-track"><span id="ecs-progress"></span></div>
+            <div class="health-stats">
+              <div><span>Cache hits</span><strong id="ecs-cache-hits">—</strong></div>
+              <div><span>Fallback / non-hits</span><strong id="ecs-cache-misses">—</strong></div>
+            </div>
+            <div class="health-footnote">
+              <span class="info-dot">i</span>
+              分母是 <code>num.query.subnet</code>，不混入普通 cache 统计。
+            </div>
+          </article>
         </section>
 
-        <section class="chart-card">
-          <div class="chart-header">
-            <h2>Response Time Histogram</h2>
-
-            <span> Query latency distribution </span>
+        <section class="panel config-panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-kicker">ACTIVE CONFIGURATION</p>
+              <h3>ECS 配置边界</h3>
+            </div>
+            <span id="config-status" class="config-status">读取中</span>
           </div>
-
-          <div class="histogram-container">
-            <canvas id="histogram-chart"></canvas>
-
-            <div id="histogram-tooltip" class="histogram-tooltip"></div>
+          <div class="config-grid">
+            <div class="config-item">
+              <span class="config-label">IPv4 subnet</span>
+              <strong id="ecs-ipv4-prefix">—</strong>
+              <small>max-client-subnet-ipv4</small>
+            </div>
+            <div class="config-item">
+              <span class="config-label">IPv6 subnet</span>
+              <strong id="ecs-ipv6-prefix">—</strong>
+              <small>max-client-subnet-ipv6</small>
+            </div>
+            <div class="config-item">
+              <span class="config-label">IPv4 tree</span>
+              <strong id="ecs-tree-ipv4">—</strong>
+              <small>max-ecs-tree-size-ipv4</small>
+            </div>
+            <div class="config-item">
+              <span class="config-label">IPv6 tree</span>
+              <strong id="ecs-tree-ipv6">—</strong>
+              <small>max-ecs-tree-size-ipv6</small>
+            </div>
           </div>
         </section>
 
         <section class="details-grid">
-          <div class="details-card">
-            <h2>Request List</h2>
+          <article class="panel details-panel">
+            <div class="panel-header"><h3>解析吞吐</h3><span class="panel-note">总量</span></div>
+            <div class="stat-row"><span>当前 QPS</span><strong id="qps">—</strong></div>
+            <div class="stat-row"><span>全部查询</span><strong id="total-queries">—</strong></div>
+            <div class="stat-row"><span>递归应答</span><strong id="recursive-replies">—</strong></div>
+            <div class="stat-row"><span>CacheDB 应答</span><strong id="cachedb">—</strong></div>
+          </article>
 
-            <div class="stat-row">
-              <span>Average</span>
-              <strong id="request-avg">-</strong>
-            </div>
+          <article class="panel details-panel">
+            <div class="panel-header"><h3>递归与请求列表</h3><span class="panel-note">性能</span></div>
+            <div class="stat-row"><span>平均递归耗时</span><strong id="recursion-avg">—</strong></div>
+            <div class="stat-row"><span>中位递归耗时</span><strong id="recursion-median">—</strong></div>
+            <div class="stat-row"><span>当前请求</span><strong id="request-all">—</strong></div>
+            <div class="stat-row"><span>请求列表峰值</span><strong id="request-max">—</strong></div>
+          </article>
 
-            <div class="stat-row">
-              <span>Maximum</span>
-              <strong id="request-max">-</strong>
-            </div>
+          <article class="panel details-panel">
+            <div class="panel-header"><h3>资源与安全</h3><span class="panel-note">运行状态</span></div>
+            <div class="stat-row"><span>内存总量</span><strong id="memory">—</strong></div>
+            <div class="stat-row"><span>DNSSEC secure</span><strong id="dnssec-secure">—</strong></div>
+            <div class="stat-row"><span>DNSSEC bogus</span><strong id="dnssec-bogus">—</strong></div>
+            <div class="stat-row"><span>运行时间</span><strong id="uptime">—</strong></div>
+          </article>
+        </section>
 
-            <div class="stat-row">
-              <span>Current All</span>
-              <strong id="request-all">-</strong>
+        <section class="panel histogram-panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-kicker">RECURSION LATENCY</p>
+              <h3>递归响应时间分布</h3>
             </div>
-
-            <div class="stat-row">
-              <span>Current User</span>
-              <strong id="request-user">-</strong>
-            </div>
-
-            <div class="stat-row">
-              <span>Current Replies</span>
-              <strong id="request-replies">-</strong>
-            </div>
-
-            <div class="stat-row">
-              <span>Overwritten</span>
-              <strong id="request-overwritten">-</strong>
-            </div>
-
-            <div class="stat-row">
-              <span>Exceeded</span>
-              <strong id="request-exceeded">-</strong>
-            </div>
+            <span class="panel-note">仅统计需要递归处理的查询</span>
           </div>
-
-          <div class="details-card">
-            <h2>Cache Count</h2>
-
-            <div class="stat-row">
-              <span>Message Cache</span>
-              <strong id="cache-message">-</strong>
-            </div>
-
-            <div class="stat-row">
-              <span>RRset Cache</span>
-              <strong id="cache-rrset">-</strong>
-            </div>
-
-            <div class="stat-row">
-              <span>Infra Cache</span>
-              <strong id="cache-infra">-</strong>
-            </div>
-
-            <div class="stat-row">
-              <span>Key Cache</span>
-              <strong id="cache-key">-</strong>
-            </div>
-          </div>
-
-          <div class="details-card">
-            <h2>DNSSEC</h2>
-
-            <div class="stat-row">
-              <span>Secure Answers</span>
-              <strong id="dnssec-secure">-</strong>
-            </div>
-
-            <div class="stat-row">
-              <span>Bogus Answers</span>
-              <strong id="dnssec-bogus">-</strong>
-            </div>
-
-            <div class="stat-row">
-              <span>RRset Bogus</span>
-              <strong id="rrset-bogus">-</strong>
-            </div>
-
-            <div class="stat-row">
-              <span>Validation Operations</span>
-              <strong id="valops">-</strong>
-            </div>
-          </div>
-
-          <div class="details-card">
-            <h2>Recursion</h2>
-
-            <div class="stat-row">
-              <span>Average</span>
-              <strong id="recursion-avg">-</strong>
-            </div>
-
-            <div class="stat-row">
-              <span>Median</span>
-              <strong id="recursion-median">-</strong>
-            </div>
-
-            <div class="stat-row">
-              <span>Recursive Replies</span>
-              <strong id="recursive-replies">-</strong>
-            </div>
-          </div>
-
-          <div class="details-card">
-            <h2>Cache Performance</h2>
-
-            <div class="stat-row">
-              <span>Cache Hits</span>
-              <strong id="cache-hits">-</strong>
-            </div>
-
-            <div class="stat-row">
-              <span>Cache Misses</span>
-              <strong id="cache-misses">-</strong>
-            </div>
-
-            <div class="stat-row">
-              <span>Prefetch</span>
-              <strong id="prefetch">-</strong>
-            </div>
-
-            <div class="stat-row">
-              <span>Expired Answers</span>
-              <strong id="expired">-</strong>
-            </div>
-          </div>
-
-          <div class="details-card">
-            <h2>System</h2>
-
-            <div class="stat-row">
-              <span>Uptime</span>
-              <strong id="uptime">-</strong>
-            </div>
-
-            <div class="stat-row">
-              <span>Last Update</span>
-              <strong id="last-update">-</strong>
-            </div>
+          <div class="histogram-container">
+            <canvas id="histogram-chart" aria-label="递归响应时间分布图"></canvas>
+            <div id="histogram-tooltip" class="histogram-tooltip"></div>
           </div>
         </section>
-      </div>
+      </main>
 
-      <!-- Raw -->
-
-      <div id="raw" class="tab-content">
-        <div class="raw-toolbar">
-          <button id="copy-raw">Copy</button>
-        </div>
-
-        <pre id="raw-stats"></pre>
-      </div>
+      <footer>
+        <span>ECS Resolver Console</span>
+        <button id="copy-raw" type="button">复制原始统计</button>
+      </footer>
+      <pre id="raw-stats" hidden></pre>
     </div>
 
     <script src="/app.js"></script>
